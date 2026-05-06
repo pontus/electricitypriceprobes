@@ -127,18 +127,14 @@ class Meters:
                 self.metrics["spotprice"].set(p["eurperkwh"] * 1000)
                 self.metrics["spotprice_sek"].set(p["sekperkwh"])
 
-                # Sälj: spot+10-2,32 öre från telge
-                # 20,4 Vattenfall
-                # 60 öre skatt
-                self.metrics["sellprice"].set(0.2040 - 0.0232 + p["sekperkwh"] + 0.10)
-                self.metrics["selltotal"].set(
-                    0.2040 - 0.0232 + p["sekperkwh"] + 0.10 + 0.6
-                )
+                # Sälj: spot+10.4 öre från vattenfall (nätnytta)
+                sell = p["sekperkwh"] + 0.104
+                self.metrics["sellprice"].set(sell)
+                self.metrics["selltotal"].set(sell)
 
-                # Köp: Energiskatt+elöverföring (Vattenfall) 39,2+24,4
-                # Påslag Telge 5 öre/kwh
+                # Köp: Energiskatt+elöverföring (Vattenfall, utan moms) 36+35.6
                 # Moms
-                other_charges = 0.244 + 0.3920
+                other_charges = 0.36 + 0.356
                 self.metrics["total_cost"].set((p["sekperkwh"] + other_charges) * 1.25)
 
 
