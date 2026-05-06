@@ -20,6 +20,7 @@ class Price(typing.TypedDict):
     sekperkwh: float
     eurperkwh: float
     timestamp: datetime.datetime
+    exr: float
 
 
 class Metrics(typing.TypedDict):
@@ -81,13 +82,16 @@ class Meters:
             r = Price(
                 sekperkwh=float(x["SEK_per_kWh"]),
                 eurperkwh=float(x["EUR_per_kWh"]),
-                timestamp=dateutil.parser.parse(x["time_start"]).astimezone(),
+                exr=float(x["EXR"]),
+                timestart=dateutil.parser.parse(x["time_start"]).astimezone(),
+                timeend=dateutil.parser.parse(x["time_end"]).astimezone(),
             )
             return r
 
         def price_apply(x: Price) -> bool:
             today = datetime.datetime.now()
-            if x["timestamp"].day == today.day:
+
+            if x["timestart"].day == today.day:
                 return True
             return False
 
@@ -118,12 +122,22 @@ class Meters:
         self.database = dbm.open("priceprobe.db", "c")
 
     def refresh_all_meters(self):
-        t = time.localtime().tm_hour
+        t = time.localtime()
 
         prices = self.get_prices()
 
         for p in prices:
-            if t == p["timestamp"].hour:
+            if (
+                t.tm_hour >= p["timestart"].hour
+                and t.tm_min >= p["timestart"].minute
+                and (
+                    t.tm_hour < p["timeend"].hour
+                    or (
+                        t.tm_hour == p["timeend"].hour
+                        and t.tm_min < (p["timeend"].minute)
+                    )
+                )
+            ):
                 self.metrics["spotprice"].set(p["eurperkwh"] * 1000)
                 self.metrics["spotprice_sek"].set(p["sekperkwh"])
 
